@@ -1,0 +1,46 @@
+# Ignore the virtual environment folder
+senti_venv/
+
+# Ignore OS-specific files
+.DS_Store
+Thumbs.db
+
+# Ignore Python cache and compiled files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Ignore model artifacts (if not needed on GitHub)
+*.pkl
+*.joblib
+
+# Ignore logs and temp files
+*.log
+*.tmp
+
+# Ignore VS Code settings (optional, for personal settings)
+.vscode/
+
+# Ignore test results or coverage
+htmlcov/
+*.cover
+.coverage
+
+# Ignore environment or secret config files
+.env
+
+# Ignore build and dist folders (for packaging)
+build/
+dist/
+*.egg-info/
+
+# Do NOT ignore the GitHub Actions workflows folder itself
+# (only ignore cache or temp files inside if needed)
+# So remove this line:
+# .github/workflows/senti_venv/
+# and replace with:
+.github/__pycache__/
