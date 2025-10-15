@@ -2,6 +2,7 @@
 
 A simple sentiment analysis tool that classifies text as Positive, Negative, or Neutral. It can be run via Streamlit for a web interface or inside a Docker container with CI/CD automation powered by GitHub Actions.
 
+![image alt](https://github.com/mohith-anand/sentiment-analyser/blob/9b1df49c181adda1001c06bc1233845894cad7d5/Screenshot%202025-10-15%20032630.png)
 ## Features
 
 - Real-time sentiment analysis via Streamlit UI
