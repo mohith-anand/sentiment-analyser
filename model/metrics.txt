@@ -1,0 +1,4 @@
+model: linear_svc
+cv_macro_f1: 0.6910
+test_accuracy: 0.6968
+test_macro_f1: 0.6987

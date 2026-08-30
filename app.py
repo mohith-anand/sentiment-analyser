@@ -1,6 +1,7 @@
 import streamlit as st
 import joblib
 import os
+from preprocess import clean_text
 
 # ----------------------------
 # Load model and vectorizer
@@ -13,7 +14,7 @@ try:
     model = joblib.load(model_path)
     vectorizer = joblib.load(vector_path)
 except FileNotFoundError:
-    st.error("Model files not found! Please place 'sentiment_model.pkl' and 'tfidf_vectorizer.pkl' in the 'models/' folder.")
+    st.error("Model files not found! Please place 'sentiment_model.pkl' and 'tfidf_vectorizer.pkl' in the 'model/' folder.")
     st.stop()
 
 # ----------------------------
@@ -47,7 +48,7 @@ if st.button("Predict Sentiment"):
     if not user_input.strip():
         st.warning("Please enter some text!")
     else:
-        vect_text = vectorizer.transform([user_input])
+        vect_text = vectorizer.transform([clean_text(user_input)])
         pred_num = model.predict(vect_text)[0]
         pred_label = label_map.get(pred_num, "Unknown")
 

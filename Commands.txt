@@ -1,0 +1,22 @@
+Activation of environment: senti_venv\Scripts\activate
+
+
+To run flask: python app.py
+
+
+To run streamlit: streamlit run app.py
+
+
+
+docker hub pat:<YOUR_DOCKER_HUB_PAT>
+
+
+link for streamlit via dockerhub=http://localhost:8501
+
+github push token:<YOUR_GITHUB_PUSH_TOKEN>
+
+
+To run docker=docker run -p 8501:8501 sentiment-analyzer 
+
+ Build the Docker image (only needed once or after changes)=
+docker build -t sentiment-analyzer .

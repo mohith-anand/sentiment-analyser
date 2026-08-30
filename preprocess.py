@@ -1,22 +1,25 @@
 import re
-import string
-import joblib
-from nltk.tokenize import word_tokenize
-from nltk.corpus import stopwords
+from sklearn.feature_extraction import text as sk_text
 
-# Load vectorizer (make sure vectorizer.pkl is in the same folder)
-vectorizer = joblib.load("vectorizer.pkl")
+# Keep negation words; they were also kept during training.
+NEGATIONS = {
+    "no", "not", "nor", "none", "never", "n't", "cannot", "can't", "won't",
+    "isn't", "aren't", "wasn't", "weren't", "don't", "doesn't", "didn't",
+    "hasn't", "haven't", "hadn't", "shouldn't", "wouldn't", "couldn't",
+    "but", "however", "although",
+}
+STOPWORDS = sk_text.ENGLISH_STOP_WORDS - NEGATIONS
 
-def clean_text(text):
+
+def clean_text(text: str) -> str:
+    """Match train.py cleaning so inference uses the same features."""
+    if not isinstance(text, str):
+        return ""
     text = text.lower()
-    text = re.sub(r"http\S+|www\S+|https\S+", '', text)
-    text = re.sub(r'\@\w+|\#', '', text)
-    text = text.translate(str.maketrans('', '', string.punctuation))
-    tokens = word_tokenize(text)
-    stop_words = set(stopwords.words("english"))
-    tokens = [word for word in tokens if word not in stop_words]
+    text = re.sub(r"http\S+|www\.\S+", " ", text)
+    text = re.sub(r"@\w+", " ", text)
+    text = re.sub(r"#(\w+)", r"\1", text)
+    text = re.sub(r"(.)\1{2,}", r"\1\1", text)
+    text = re.sub(r"[^a-z\s'!?]", " ", text)
+    tokens = [t for t in text.split() if t not in STOPWORDS and len(t) > 1]
     return " ".join(tokens)
-
-def transform_text(text):
-    cleaned = clean_text(text)
-    return vectorizer.transform([cleaned])
