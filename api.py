@@ -2,13 +2,32 @@ import os
 import sqlite3
 import datetime
 import joblib
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from contextlib import asynccontextmanager
 from pydantic import BaseModel
 from typing import Optional
 from preprocess import clean_text
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(title="Sentiment Analyzer API")
+# Rate limiting
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global model, vectorizer
+    # Ensure DB exists and models are available during startup
+    init_db()
+    if not os.path.exists(model_path) or not os.path.exists(vector_path):
+        raise RuntimeError("Model files not found! Please run training first.")
+    model = joblib.load(model_path)
+    vectorizer = joblib.load(vector_path)
+    yield
+
+# Create app with lifespan handler (replaces deprecated startup event)
+app = FastAPI(title="Sentiment Analyzer API", lifespan=lifespan)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 model_path = os.path.join(BASE_DIR, 'model', 'sentiment_model.pkl')
@@ -36,6 +55,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Configure rate limiter (per-IP)
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_middleware(SlowAPIMiddleware)
+
+@app.exception_handler(RateLimitExceeded)
+def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    raise HTTPException(status_code=429, detail="Rate limit exceeded")
+
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -51,14 +79,7 @@ def init_db():
     conn.commit()
     conn.close()
 
-@app.on_event("startup")
-def startup_event():
-    global model, vectorizer
-    init_db()
-    if not os.path.exists(model_path) or not os.path.exists(vector_path):
-        raise RuntimeError("Model files not found! Please run training first.")
-    model = joblib.load(model_path)
-    vectorizer = joblib.load(vector_path)
+# startup handled by lifespan
 
 class PredictRequest(BaseModel):
     text: str
@@ -73,12 +94,17 @@ def health():
     return {"status": "ok", "model_loaded": model_loaded}
 
 @app.post("/predict", response_model=PredictResponse)
-def predict(request: PredictRequest):
-    if not request.text or not request.text.strip():
+@limiter.limit("10/minute")
+def predict(request: Request, payload: PredictRequest):
+    if not payload.text or not payload.text.strip():
         raise HTTPException(status_code=400, detail="Text cannot be empty or whitespace only")
 
+    # Reject overly long inputs to avoid resource exhaustion
+    if len(payload.text) > 5000:
+        raise HTTPException(status_code=400, detail="Text too long")
+
     # Clean text and transform
-    cleaned = clean_text(request.text)
+    cleaned = clean_text(payload.text)
     vect_text = vectorizer.transform([cleaned])
     
     # Predict
@@ -109,7 +135,7 @@ def predict(request: PredictRequest):
         cursor.execute("""
             INSERT INTO predictions (text, predicted_label, confidence, timestamp)
             VALUES (?, ?, ?, ?)
-        """, (request.text, label, confidence, timestamp))
+        """, (payload.text, label, confidence, timestamp))
         conn.commit()
         conn.close()
     except Exception as e:
@@ -135,17 +161,16 @@ def stats():
             if label in count_per_label:
                 count_per_label[label] = count
                 
-        # Recent 5
-        cursor.execute("SELECT id, text, predicted_label, confidence, timestamp FROM predictions ORDER BY id DESC LIMIT 5")
+        # Recent 5 — omit raw text to avoid exposing user-submitted content
+        cursor.execute("SELECT id, predicted_label, confidence, timestamp FROM predictions ORDER BY id DESC LIMIT 5")
         rows = cursor.fetchall()
         recent_predictions = []
         for row in rows:
             recent_predictions.append({
                 "id": row[0],
-                "text": row[1],
-                "predicted_label": row[2],
-                "confidence": row[3],
-                "timestamp": row[4]
+                "predicted_label": row[1],
+                "confidence": row[2],
+                "timestamp": row[3]
             })
             
         conn.close()
