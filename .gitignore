@@ -44,3 +44,4 @@ dist/
 .github/__pycache__/
 Commands.txt
 predictions.db
+predictions.db.bak.*
