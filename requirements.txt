@@ -22,3 +22,5 @@ cachetools<6,>=4.0
 importlib-metadata>=1.4,<7
 fastapi
 uvicorn
+pytest
+httpx

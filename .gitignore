@@ -44,3 +44,4 @@ dist/
 # .github/workflows/senti_venv/
 # and replace with:
 .github/__pycache__/
+Commands.txt
