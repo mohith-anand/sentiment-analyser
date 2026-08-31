@@ -4,6 +4,7 @@ import datetime
 import joblib
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+from typing import Optional
 from preprocess import clean_text
 
 app = FastAPI(title="Sentiment Analyzer API")
@@ -47,7 +48,7 @@ class PredictRequest(BaseModel):
 
 class PredictResponse(BaseModel):
     label: str
-    confidence: float | None
+    confidence: Optional[float]
 
 @app.get("/health")
 def health():

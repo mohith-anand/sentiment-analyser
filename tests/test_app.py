@@ -48,15 +48,15 @@ def test_api_endpoints():
     from api import app
     from fastapi.testclient import TestClient
 
-    client = TestClient(app)
+    # Use context manager to ensure startup events run (loads model/vectorizer)
+    with TestClient(app) as client:
+        r = client.get("/health")
+        assert r.status_code == 200
 
-    r = client.get("/health")
-    assert r.status_code == 200
+        r = client.post("/predict", json={"text": "I love this"})
+        assert r.status_code == 200
+        j = r.json()
+        assert j.get("label") in {"Positive", "Negative", "Neutral"}
 
-    r = client.post("/predict", json={"text": "I love this"})
-    assert r.status_code == 200
-    j = r.json()
-    assert j.get("label") in {"Positive", "Negative", "Neutral"}
-
-    r = client.post("/predict", json={"text": "   "})
-    assert r.status_code == 400
+        r = client.post("/predict", json={"text": "   "})
+        assert r.status_code == 400

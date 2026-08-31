@@ -43,3 +43,4 @@ dist/
 # and replace with:
 .github/__pycache__/
 Commands.txt
+predictions.db
