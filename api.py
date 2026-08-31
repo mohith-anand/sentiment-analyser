@@ -6,6 +6,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 from preprocess import clean_text
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="Sentiment Analyzer API")
 
@@ -18,6 +19,22 @@ model = None
 vectorizer = None
 
 label_map = {0: "Negative", 1: "Neutral", 2: "Positive"}
+
+# Configure CORS origins via ALLOWED_ORIGINS env var (comma-separated).
+# Defaults to allow all origins in development; set to the Streamlit URL in production.
+allowed = os.environ.get("ALLOWED_ORIGINS", "*")
+if allowed.strip() == "*":
+    origins = ["*"]
+else:
+    origins = [o.strip() for o in allowed.split(",") if o.strip()]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["*"],
+)
 
 def init_db():
     conn = sqlite3.connect(DB_PATH)
