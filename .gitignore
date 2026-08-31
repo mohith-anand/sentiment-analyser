@@ -14,9 +14,7 @@ __pycache__/
 # Ignore Jupyter Notebook checkpoints
 .ipynb_checkpoints/
 
-# Ignore model artifacts (if not needed on GitHub)
-*.pkl
-*.joblib
+# Model artifacts are committed for deployment; do not ignore .pkl/.joblib here
 
 # Ignore logs and temp files
 *.log

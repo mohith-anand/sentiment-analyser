@@ -1,3 +1,5 @@
+## NOTE: This combined `requirements.txt` is superseded by `requirements-api.txt` and `requirements-app.txt`.
+## For backend Docker deploy, use `requirements-api.txt`. For Streamlit deploy, use `requirements-app.txt`.
 blinker==1.9.0
 click==8.1.8
 colorama==0.4.6
@@ -24,3 +26,4 @@ fastapi
 uvicorn
 pytest
 httpx
+requests

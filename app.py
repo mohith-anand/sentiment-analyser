@@ -1,21 +1,12 @@
 import streamlit as st
-import joblib
 import os
-from preprocess import clean_text
+import requests
 
 # ----------------------------
-# Load model and vectorizer
+# Use backend API (do NOT load model locally)
 # ----------------------------
-BASE_DIR = os.path.dirname(__file__)
-model_path = os.path.join(BASE_DIR, 'model', 'sentiment_model.pkl')
-vector_path = os.path.join(BASE_DIR, 'model', 'tfidf_vectorizer.pkl')
-
-try:
-    model = joblib.load(model_path)
-    vectorizer = joblib.load(vector_path)
-except FileNotFoundError:
-    st.error("Model files not found! Please place 'sentiment_model.pkl' and 'tfidf_vectorizer.pkl' in the 'model/' folder.")
-    st.stop()
+# Backend URL should be provided via environment variable `API_URL` or Streamlit secrets.
+API_URL = os.environ.get("API_URL") or (st.secrets.get("API_URL") if hasattr(st, "secrets") and "API_URL" in st.secrets else None)
 
 # ----------------------------
 # Mapping numeric prediction to sentiment label
@@ -48,18 +39,26 @@ if st.button("Predict Sentiment"):
     if not user_input.strip():
         st.warning("Please enter some text!")
     else:
-        vect_text = vectorizer.transform([clean_text(user_input)])
-        pred_num = model.predict(vect_text)[0]
-        pred_label = label_map.get(pred_num, "Unknown")
+        if not API_URL:
+            st.error("API_URL not configured. Set the API_URL environment variable to your backend endpoint.")
+        else:
+            try:
+                resp = requests.post(f"{API_URL.rstrip('/')}/predict", json={"text": user_input}, timeout=10)
+                resp.raise_for_status()
+                data = resp.json()
+                pred_label = data.get("label", "Unknown")
+                confidence = data.get("confidence")
 
-        st.markdown(
-            f"<h2 style='color:{color_map[pred_label]}; text-align:center'>{pred_label} {emoji_map[pred_label]}</h2>",
-            unsafe_allow_html=True
-        )
+                st.markdown(
+                    f"<h2 style='color:{color_map.get(pred_label, 'black')}; text-align:center'>{pred_label} {emoji_map.get(pred_label, '')}</h2>",
+                    unsafe_allow_html=True
+                )
 
-        if 'history' not in st.session_state:
-            st.session_state.history = []
-        st.session_state.history.append((user_input, pred_label))
+                if 'history' not in st.session_state:
+                    st.session_state.history = []
+                st.session_state.history.append((user_input, pred_label))
+            except requests.exceptions.RequestException as e:
+                st.error(f"Request to backend failed: {e}")
 
 # ----------------------------
 # Display session history
